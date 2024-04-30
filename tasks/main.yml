@@ -1,13 +1,13 @@
 ---
 - name: Update the apt package index
-  become: yes
+  become: true
   apt:
     name: "*"
     state: latest
     update_cache: yes
     force_apt_get: yes
 - name: Install packages for apt add repository over HTTPS
-  become: yes
+  become: True
   apt:
     name: "{{ packagesdep }}"
     force_apt_get: yes
@@ -23,55 +23,40 @@
     - gnupg2
     - curl
     - docker.io
-  apt:
+  ansible.builtin.apt:
     name: "*"
     state: latest
     update_cache: yes
     force_apt_get: yes
-
 - name: Check if Docker image is present
   shell: docker image inspect bcsecurity/empire:latest >/dev/null 2>&1
   ignore_errors: true
   register: image_check_result
-
 - name: pull empire image if Docker image doesn't exist
   docker_image:
     name: bcsecurity/empire
     tag: latest
     source: pull
-  when: image_check_result.rc != 0  
+  when: image_check_result.rc != 0
   register: image_pull_result
-
 - name: debug message if image was pulled
   debug:
     msg: "Docker image exists, skipping pull empire image tasks..."
   when: image_pull_result.changed
-
-#########################################
-
 - name: Check if data volume exists
   ansible.builtin.shell:
-    cmd: docker inspect -f 'bcsecurity/empire' data | grep "/empire"
+    cmd: docker inspect -f '{{ .Mounts }}' data | grep "/empire"
   register: volume_check_result
   ignore_errors: true
-
-- name: Debug volume check result
-  ansible.builtin.debug:
-    var: volume_check_result.stdout
-
 - name: Create data volume if it doesn't exist
   ansible.builtin.shell:
     cmd: docker create -v /empire --name data bcsecurity/empire:latest
-  when: volume_check_result.stdout != "bcsecurity/empire"
-
-#########################################
-
-- name: Check if empire container exists
+  when: volume_check_result.rc != 0
+  - name: Check if empire container exists
   ansible.builtin.shell:
     cmd: docker inspect empire >/dev/null 2>&1
   ignore_errors: true
   register: container_check_result
-
 - name: Start empire container if it doesn't exist
   ansible.builtin.docker_container:
     name: empire
