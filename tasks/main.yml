@@ -49,14 +49,14 @@
 
 - name: Check if data volume exists
   ansible.builtin.shell:
-    cmd: docker inspect data >/dev/null 2>&1
-  ignore_errors: true
+    cmd: docker inspect -f '{{ .Mounts }}' data | grep "/empire"
   register: volume_check_result
-- name: create data volume if it doesn't exist
-  become: true
+  ignore_errors: true
+
+- name: Create data volume if it doesn't exist
   ansible.builtin.shell:
     cmd: docker create -v /empire --name data bcsecurity/empire:latest
-  when: volume_check_result
+  when: volume_check_result.rc != 0
 
 - name: Check if empire container exists
   ansible.builtin.shell:
