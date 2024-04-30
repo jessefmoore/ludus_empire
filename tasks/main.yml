@@ -1,0 +1,82 @@
+---
+- name: Update the apt package index
+  become: yes
+  apt:
+    name: "*"
+    state: latest
+    update_cache: yes
+    force_apt_get: yes
+- name: Install packages for apt add repository over HTTPS
+  become: yes
+  apt:
+    name: "{{ packagesdep }}"
+    force_apt_get: yes
+    state: latest
+    update_cache: yes
+  vars:
+    packagesdep:
+    - git
+    - apt-transport-https
+    - ca-certificates
+    - wget
+    - software-properties-common
+    - gnupg2
+    - curl
+    - docker.io
+  apt:
+    name: "*"
+    state: latest
+    update_cache: yes
+    force_apt_get: yes
+
+- name: Check if Docker image is present
+  shell: docker image inspect bcsecurity/empire:latest >/dev/null 2>&1
+  ignore_errors: true
+  register: image_check_result
+
+- name: Skip if Docker image exists
+  when: image_check_result.rc == 0
+  block:
+    - name: pull empire image
+      debug:
+        msg: "Docker image exists, skipping pull empire image tasks..."
+  rescue:
+    - name: pull empire image if Docker image doesn't exist
+      docker_image:
+        name: bcsecurity/empire
+        tag: latest
+        source: pull
+      register: image_pull_result
+#        msg: "Docker image not found, proceeding with tasks..."
+- name: Check if Empire Data is present
+  shell: docker image inspect bcsecurity/empire:latest >/dev/null 2>&1
+  ignore_errors: true
+  register: image_check_result
+
+- name: Skip if Docker image exists, don't create data volume
+  when: image_check_result.rc == 0
+  block:
+    - name: don't create data volume
+      debug:
+        msg: "Docker image exists, skipping pull empire image tasks..."
+  rescue:
+    - name: create data volume
+      become: true
+      ansible.builtin.shell:
+        cmd: docker create -v /empire --name data bcsecurity/empire:latest
+- name: Check if Docker image is present for empire start
+  shell: docker image inspect bcsecurity/empire:latest >/dev/null 2>&1
+  ignore_errors: true
+  register: image_check_result
+
+- name: Don't start Empire if Empire Docker image exists
+  when: image_check_result.rc == 0
+  block:
+    - name: block start empire
+      debug:
+        msg: "Docker image exists, skipping pull empire image tasks..."
+  rescue:
+    - name: Start empire
+      become: true
+      ansible.builtin.shell:
+        cmd: docker run -d -p 1337:1337 -p 1336:1336 -p 5000:5000 --volumes-from data bcsecurity/empire      
