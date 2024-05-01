@@ -43,22 +43,29 @@
   debug:
     msg: "Docker image exists, skipping pull empire image tasks..."
   when: image_pull_result.changed
-- name: Check if data volume exists
-  ansible.builtin.shell:
-    cmd: docker inspect -f '{{ .Mounts }}' data | grep "/empire"
-  register: volume_check_result
-  ignore_errors: true
+##########################################
+#- name: Check if data volume exists
+#  ansible.builtin.shell:
+#    cmd: docker inspect -f '{{ .Mounts }}' data | grep "/empire"
+#  register: volume_check_result
+#  ignore_errors: true
+
+#- name: Debug volume check result
+#  ansible.builtin.debug:
+#    var: volume_check_result.stdout
+
 - name: Create data volume if it doesn't exist
   ansible.builtin.shell:
     cmd: docker create -v /empire --name data bcsecurity/empire:latest
-  when: volume_check_result.rc != 0
-  - name: Check if empire container exists
+#  when: volume_check_result.rc != 1
+#######################################################
+- name: Check if empire container exists
   ansible.builtin.shell:
     cmd: docker inspect empire >/dev/null 2>&1
   ignore_errors: true
   register: container_check_result
 - name: Start empire container if it doesn't exist
-  ansible.builtin.docker_container:
+  community.docker.docker_container:
     name: empire
     image: bcsecurity/empire
     state: started
