@@ -29,11 +29,11 @@
     update_cache: yes
     force_apt_get: yes
 - name: Check if Docker image is present
-  shell: docker image inspect bcsecurity/empire:latest >/dev/null 2>&1
+  ansible.builtin.shell: docker image inspect bcsecurity/empire:latest >/dev/null 2>&1
   ignore_errors: true
   register: image_check_result
 - name: pull empire image if Docker image doesn't exist
-  docker_image:
+  community.docker.docker_image:
     name: bcsecurity/empire
     tag: latest
     source: pull
