@@ -7,7 +7,7 @@
     update_cache: yes
     force_apt_get: yes
 - name: Install packages for apt add repository over HTTPS
-  become: True
+  become: true
   ansible.builtin.apt:
     name: "{{ packagesdep }}"
     force_apt_get: yes
@@ -57,6 +57,7 @@
 - name: Create data volume if it doesn't exist
   ansible.builtin.shell:
     cmd: docker create -v /empire --name data bcsecurity/empire:latest
+  ignore_errors: true
 #  when: volume_check_result.rc != 1
 #######################################################
 - name: Check if empire container exists
